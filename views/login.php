@@ -5,18 +5,38 @@
 
 require("../db_config.php");
 
+session_start();
 
-if(isset($_POST["login"])){
-    $email = $_POST["email"];
-    $password = $_POST["password"];
-    $sqlQ = "SELECT * FROM users where email='$email' && password='$password'";
-    if(mysqli_query($con, $sqlQ)){
-        echo "UserExists";
-    }else{
-        echo "Error Logging in";
+if (isset($_POST["login"])) {
+    
+    $email = mysqli_real_escape_string($con, $_POST["email"]);
+    $password = mysqli_real_escape_string($con, $_POST["password"]);
+
+    
+    $sqlQ = "SELECT * FROM users WHERE email='$email' AND password='$password'";
+    $result = mysqli_query($con, $sqlQ);
+
+    if (mysqli_num_rows($result) > 0) {
+        echo "Login Successful!";
+        while($row = $result->fetch_assoc()){
+            $_SESSION["first_name"] = $row["FirstName"];
+            $_SESSION["last_name"] = $row["LastName"];
+            $_SESSION["email"] = $row["email"];
+            $_SESSION["auth"] = md5($row["email"] . $password);
+            $_SESSION["pfp"] = $row["pfp"];
+            $_SESSION["role"] = $row["role"];
+        }
+        
+
+        header("Location: home.php");
+
+
+    } else {
+        echo "Invalid email or password!";
     }
-
 }
+
+
 
 ?>
 
