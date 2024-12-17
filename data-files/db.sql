@@ -12,7 +12,7 @@ CREATE TABLE users(
     FirstName varchar(250) NOT NULL,
     LastName  varchar(250) NOT NULL,
     DateOFBirth date NOT NULL,
-    Date_joined DATE DEFAULT CURRENT_DATE,
+    Date_joined DATE,
     city varchar(250),
     email varchar(250) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -60,7 +60,18 @@ CREATE TABLE reviews (
     client_ID INT NOT NULL,
     rating INT CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
-    review_date DATE DEFAULT CURRENT_DATE,
+    review_date DATE,
     FOREIGN KEY (lw_ID) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (client_ID) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+
+CREATE TABLE logs (
+    log_ID INT AUTO_INCREMENT PRIMARY KEY,
+    user_ID INT, 
+    action_type ENUM('Reserved', 'cancled', 'Reviewd', 'deletedReview','LOGIN', 'LOGOUT', 'ERROR', 'OTHER') NOT NULL,
+    description TEXT NOT NULL, 
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_ID) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
