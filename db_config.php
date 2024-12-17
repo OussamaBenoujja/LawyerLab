@@ -2,10 +2,10 @@
 
 <?php
 
-    $username = 'osama';
-    $password = 'osama1310';
+    $username = 'root';
+    $password = 'osama';
     $host = 'localhost';
-    $db = 'laywerLab';
+    $db = 'lwbase';
 
     $con = new mysqli($host, $username, $password, $db);
 
@@ -14,7 +14,7 @@
     }
 
 
-    
+
 
 
 ?>
