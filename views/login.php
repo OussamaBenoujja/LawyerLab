@@ -1,7 +1,24 @@
 
 
 
+<?php
 
+require("../db_config.php");
+
+
+if(isset($_POST["login"])){
+    $email = $_POST["email"];
+    $password = $_POST["password"];
+    $sqlQ = "SELECT * FROM users where email='$email' && password='$password'";
+    if(mysqli_query($con, $sqlQ)){
+        echo "UserExists";
+    }else{
+        echo "Error Logging in";
+    }
+
+}
+
+?>
 
 
 
@@ -22,12 +39,12 @@
 </nav>
 
 <main>
-    <form>
+    <form method="POST" action="login.php">
         <label for='email'>Email</label>
         <input type='email' name='email'>
         <label for='password'>Password</label>
         <input type='password' name='password'>  
-        <button type="submit">Log In</button>
+        <button type="submit" name="login">Log In</button>
     </form>
 </main>
 
