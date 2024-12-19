@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         //add user
         $sql = "INSERT INTO users (FirstName, LastName, email, password, phone_number, role, DateOFBirth, Date_joined) 
                 VALUES ('$firstName', '$lastName', '$email', '$password', '$phone', '$role', '$dateOfBirth', CURRENT_DATE)";
-        //dont forget to redirect user with proper session info
+       
         if (mysqli_query($con, $sql)) {
             header("Location: login.php");
             exit();
