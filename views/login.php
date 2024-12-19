@@ -15,7 +15,7 @@ if (isset($_POST["login"])) {
         
         // Verify password
         if (password_verify($password, $user["password"])) {
-            
+
             // Set session variables
             $_SESSION["user_id"] = $user["user_id"];
             $_SESSION["first_name"] = $user["FirstName"];
@@ -24,7 +24,7 @@ if (isset($_POST["login"])) {
             $_SESSION["role"] = $user["role"];
             $_SESSION["pfp"] = $user["pfp"];
 
-            // Log login action
+            //Logs
             $userId = $user["user_id"];
             $logSql = "INSERT INTO logs (user_ID, action_type, description) VALUES ('$userId', 'LOGIN', 'User logged in')";
             mysqli_query($con, $logSql);
