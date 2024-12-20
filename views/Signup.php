@@ -6,7 +6,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $firstName = mysqli_real_escape_string($con, $_POST['firstName']);
     $lastName = mysqli_real_escape_string($con, $_POST['lastName']);
     $email = mysqli_real_escape_string($con, $_POST['email']);
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT); // Secure password hashing
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT); 
     $phone = mysqli_real_escape_string($con, $_POST['phone']);
     $role = mysqli_real_escape_string($con, $_POST['role']);
     $dateOfBirth = mysqli_real_escape_string($con, $_POST['dateOfBirth']);

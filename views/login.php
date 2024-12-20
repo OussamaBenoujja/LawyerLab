@@ -13,16 +13,17 @@ if (isset($_POST["login"])) {
     if (mysqli_num_rows($result) > 0) {
         $user = mysqli_fetch_assoc($result);
         
-        // Verify password
+        // verficqtion
         if (password_verify($password, $user["password"])) {
 
-            // Set session variables
+            //session variables
             $_SESSION["user_id"] = $user["user_id"];
             $_SESSION["first_name"] = $user["FirstName"];
             $_SESSION["last_name"] = $user["LastName"];
             $_SESSION["email"] = $user["email"];
             $_SESSION["role"] = $user["role"];
             $_SESSION["pfp"] = $user["pfp"];
+            $_SESSION["bday"] = $user["DateOFBirth"];
 
             //Logs
             $userId = $user["user_id"];

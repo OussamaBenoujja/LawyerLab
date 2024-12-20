@@ -1,3 +1,59 @@
+
+<?php
+
+session_start();
+
+if(!isset($_SESSION["email"])){
+    header("Location: login.php");
+    exit;
+}
+
+require("../db_config.php");  // Make sure this points to your database connection file
+
+// Function to check if lawyer has completed their profile
+function checkLawyerProfile($userId, $connection) {
+    $stmt = $connection->prepare("SELECT * FROM lawyerSub WHERE lw_ID = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    return $result->num_rows > 0;
+}
+
+// Check if user is a lawyer and hasn't completed their profile
+$showProfileModal = false;
+if(isset($_SESSION["role"]) && $_SESSION["role"] == 'lawyer') {
+    if(!checkLawyerProfile($_SESSION["user_id"], $con)) {
+        $showProfileModal = true;
+    }
+}
+
+// Handle form submission
+if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["complete_profile"])) {
+    $speciality = $_POST["speciality"];
+    $price = $_POST["price"];
+    $userId = $_SESSION["user_id"];
+    
+    $stmt = $con->prepare("INSERT INTO lawyerSub (speciality, lw_ID, res_price) VALUES (?, ?, ?)");
+    $stmt->bind_param("sid", $speciality, $userId, $price);
+    
+    if($stmt->execute()) {
+        // Log the action
+        $logStmt = $con->prepare("INSERT INTO logs (user_ID, action_type, description) VALUES (?, 'OTHER', 'Lawyer profile completed')");
+        $logStmt->bind_param("i", $userId);
+        $logStmt->execute();
+        
+        $showProfileModal = false;
+        header("Location: home.php");
+        exit;
+    } else {
+        $error = "Failed to save profile information. Please try again.";
+    }
+}
+
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,6 +64,82 @@
     <title>Document</title>
 </head>
 <body>
+
+<?php if($showProfileModal): ?>
+<div id="profileModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative p-8 bg-white w-full max-w-md mx-auto rounded-md shadow-lg mt-20">
+        <div class="text-center">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Complete Your Profile</h2>
+            <p class="mb-4 text-gray-600">Please provide additional information to complete your lawyer profile</p>
+        </div>
+        
+        <form method="POST" action="" class="space-y-4">
+            <div>
+                <label for="speciality" class="block text-sm font-medium text-gray-700">Speciality</label>
+                <select name="speciality" id="speciality" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Select your speciality</option>
+                    <option value="Criminal Law">Criminal Law</option>
+                    <option value="Family Law">Family Law</option>
+                    <option value="Corporate Law">Corporate Law</option>
+                    <option value="Civil Rights">Civil Rights</option>
+                    <option value="Real Estate Law">Real Estate Law</option>
+                    <option value="Tax Law">Tax Law</option>
+                    <option value="Intellectual Property">Intellectual Property</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="price" class="block text-sm font-medium text-gray-700">Consultation Price (per hour)</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input type="number" name="price" id="price" required
+                        class="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="0.00" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="submit" name="complete_profile"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Complete Profile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('profileModal');
+    
+    // Prevent closing the modal by clicking outside since this is required information
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            e.preventDefault();
+        }
+    });
+
+    // Form validation
+    const form = modal.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const speciality = document.getElementById('speciality').value;
+        const price = document.getElementById('price').value;
+        
+        if (!speciality || !price) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+        }
+        
+        if (price < 0) {
+            e.preventDefault();
+            alert('Price cannot be negative');
+        }
+    });
+});
+</script>
+<?php endif; ?>
 
 <header>
 
@@ -63,6 +195,9 @@
 
 <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-4 py-12">
     <div class="text-center pb-12">
+        <h3 class="text-base font-bold text-indigo-600">
+            Hello, <?php echo $_SESSION['last_name'] ?>.
+        </h3>
         <h2 class="text-base font-bold text-indigo-600">
             We have the best Lawyers for consultation
         </h2>
@@ -301,4 +436,8 @@ document.addEventListener('DOMContentLoaded', function () {
   
   });
   </script>
+
+
+
+
 </html>
