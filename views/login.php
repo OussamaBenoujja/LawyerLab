@@ -13,17 +13,29 @@ if (isset($_POST["login"])) {
     if (mysqli_num_rows($result) > 0) {
         $user = mysqli_fetch_assoc($result);
         
-        // verficqtion
+        // verfication
         if (password_verify($password, $user["password"])) {
+            $usr_ID = $user["user_id"];
+            $sqlL = "SELECT * FROM lawyerSub WHERE lw_ID='$usr_ID'";
+            $res = mysqli_query($con, $sqlL);
+
+            if (mysqli_num_rows($res) > 0) {
+                $lw = mysqli_fetch_assoc($res);
+                $_SESSION['speciality'] = $lw['speciality'];
+                $_SESSION['res_price']  = $lw['price'];
+            }
 
             //session variables
-            $_SESSION["user_id"] = $user["user_id"];
-            $_SESSION["first_name"] = $user["FirstName"];
-            $_SESSION["last_name"] = $user["LastName"];
-            $_SESSION["email"] = $user["email"];
-            $_SESSION["role"] = $user["role"];
-            $_SESSION["pfp"] = $user["pfp"];
-            $_SESSION["bday"] = $user["DateOFBirth"];
+            $_SESSION["user_id"]        = $user["user_id"];
+            $_SESSION["first_name"]     = $user["FirstName"];
+            $_SESSION["last_name"]      = $user["LastName"];
+            $_SESSION["email"]          = $user["email"];
+            $_SESSION["role"]           = $user["role"];
+            $_SESSION["pfp"]            = $user["pfp"];
+            $_SESSION["bday"]           = $user["DateOFBirth"];
+            $_SESSION["phone"]          = $user["phone"];
+            $_SESSION["city"]           = $user["city"];
+            $_SESSION["Date_joined"]    = $user["Date_joined"];
 
             //Logs
             $userId = $user["user_id"];
