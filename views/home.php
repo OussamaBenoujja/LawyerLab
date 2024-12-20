@@ -8,9 +8,9 @@ if(!isset($_SESSION["email"])){
     exit;
 }
 
-require("../db_config.php");  // Make sure this points to your database connection file
+require("../db_config.php");  
 
-// Function to check if lawyer has completed their profile
+
 function checkLawyerProfile($userId, $connection) {
     $stmt = $connection->prepare("SELECT * FROM lawyerSub WHERE lw_ID = ?");
     $stmt->bind_param("i", $userId);
@@ -20,7 +20,6 @@ function checkLawyerProfile($userId, $connection) {
     return $result->num_rows > 0;
 }
 
-// Check if user is a lawyer and hasn't completed their profile
 $showProfileModal = false;
 if(isset($_SESSION["role"]) && $_SESSION["role"] == 'lawyer') {
     if(!checkLawyerProfile($_SESSION["user_id"], $con)) {
@@ -28,11 +27,10 @@ if(isset($_SESSION["role"]) && $_SESSION["role"] == 'lawyer') {
     }
 }
 
-// Handle form submission
 if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["complete_profile"])) {
     $speciality = $_POST["speciality"];
-    $price = $_POST["price"];
-    $userId = $_SESSION["user_id"];
+    $price      = $_POST["price"];
+    $userId     = $_SESSION["user_id"];
     
     $stmt = $con->prepare("INSERT INTO lawyerSub (speciality, lw_ID, res_price) VALUES (?, ?, ?)");
     $stmt->bind_param("sid", $speciality, $userId, $price);
@@ -42,7 +40,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["complete_profile"])) {
         $logStmt = $con->prepare("INSERT INTO logs (user_ID, action_type, description) VALUES (?, 'OTHER', 'Lawyer profile completed')");
         $logStmt->bind_param("i", $userId);
         $logStmt->execute();
-        
+        $_SESSION["speciality"] = $speciality;
+        $_SESSION["res_price"] = $price;
         $showProfileModal = false;
         header("Location: home.php");
         exit;
@@ -50,6 +49,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["complete_profile"])) {
         $error = "Failed to save profile information. Please try again.";
     }
 }
+
 
 ?>
 
@@ -207,145 +207,67 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            <div class="relative flex w-96 flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-md">
-            <div class="relative mx-4 mt-4 h-100 overflow-hidden rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg">
-                <img src="../assets/img/pfp/law.png" alt="profile-picture" />
-            </div>
-            <div class="p-6 text-center">
-                <h4 class="mb-2 block font-sans text-2xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased">
-                Natalie Paisley
-                </h4>
-                <p class="block bg-gradient-to-tr from-pink-600 to-pink-400 bg-clip-text font-sans text-base font-medium leading-relaxed text-transparent antialiased">
-                CEO / Co-Founder
-                </p>
-            </div>
-            <div class="flex justify-center gap-7 p-6 pt-2">
-                <a
-                href="#facebook"
-                class="block bg-gradient-to-tr from-blue-600 to-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-facebook" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#twitter"
-                class="block bg-gradient-to-tr from-light-blue-600 to-light-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-twitter" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#instagram"
-                class="block bg-gradient-to-tr from-purple-600 to-purple-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-instagram" aria-hidden="true"></i>
-                </a>
-            </div>
-            </div>
+    <?php
+        $sqlD = "SELECT * FROM users";
+        $spc = "";
+        $resLawyers = $con->query($sqlD);
 
-            <div class="relative flex w-96 flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-md">
-            <div class="relative mx-4 mt-4 h-100 overflow-hidden rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg">
-                <img src="../assets/img/pfp/law.png" alt="profile-picture" />
-            </div>
-            <div class="p-6 text-center">
-                <h4 class="mb-2 block font-sans text-2xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased">
-                Natalie Paisley
-                </h4>
-                <p class="block bg-gradient-to-tr from-pink-600 to-pink-400 bg-clip-text font-sans text-base font-medium leading-relaxed text-transparent antialiased">
-                CEO / Co-Founder
-                </p>
-            </div>
-            <div class="flex justify-center gap-7 p-6 pt-2">
-                <a
-                href="#facebook"
-                class="block bg-gradient-to-tr from-blue-600 to-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-facebook" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#twitter"
-                class="block bg-gradient-to-tr from-light-blue-600 to-light-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-twitter" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#instagram"
-                class="block bg-gradient-to-tr from-purple-600 to-purple-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-instagram" aria-hidden="true"></i>
-                </a>
-            </div>
-            </div>
+        if ($resLawyers->num_rows > 0) {
+            while ($row = $resLawyers->fetch_assoc()) {
+                if ($row['role'] == 'lawyer') {
+                    $lw_id = $row['user_id'];
+                    $sqlF = "SELECT * FROM lawyerSub WHERE lw_ID = $lw_id";
+                    $resLawyersSub = $con->query($sqlF);
 
-            <div class="relative flex w-96 flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-md">
-            <div class="relative mx-4 mt-4 h-100 overflow-hidden rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg">
-                <img src="../assets/img/pfp/law.png" alt="profile-picture" />
-            </div>
-            <div class="p-6 text-center">
-                <h4 class="mb-2 block font-sans text-2xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased">
-                Natalie Paisley
-                </h4>
-                <p class="block bg-gradient-to-tr from-pink-600 to-pink-400 bg-clip-text font-sans text-base font-medium leading-relaxed text-transparent antialiased">
-                CEO / Co-Founder
-                </p>
-            </div>
-            <div class="flex justify-center gap-7 p-6 pt-2">
-                <a
-                href="#facebook"
-                class="block bg-gradient-to-tr from-blue-600 to-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-facebook" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#twitter"
-                class="block bg-gradient-to-tr from-light-blue-600 to-light-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-twitter" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#instagram"
-                class="block bg-gradient-to-tr from-purple-600 to-purple-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-instagram" aria-hidden="true"></i>
-                </a>
-            </div>
-            </div>
+                    
+                    if ($resLawyersSub->num_rows > 0) {
+                        $row1 = $resLawyersSub->fetch_assoc();
+                        $spc = $row1["speciality"];
+                    } else {
+                        $spc = "No specialty listed"; // Default message if no specialty found
+                    }
 
-            <div class="relative flex w-96 flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-md">
-            <div class="relative mx-4 mt-4 h-100 overflow-hidden rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg">
-                <img src="../assets/img/pfp/law.png" alt="profile-picture" />
-            </div>
-            <div class="p-6 text-center">
-                <h4 class="mb-2 block font-sans text-2xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased">
-                Natalie Paisley
-                </h4>
-                <p class="block bg-gradient-to-tr from-pink-600 to-pink-400 bg-clip-text font-sans text-base font-medium leading-relaxed text-transparent antialiased">
-                CEO / Co-Founder
-                </p>
-            </div>
-            <div class="flex justify-center gap-7 p-6 pt-2">
-                <a
-                href="#facebook"
-                class="block bg-gradient-to-tr from-blue-600 to-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-facebook" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#twitter"
-                class="block bg-gradient-to-tr from-light-blue-600 to-light-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-twitter" aria-hidden="true"></i>
-                </a>
-                <a
-                href="#instagram"
-                class="block bg-gradient-to-tr from-purple-600 to-purple-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased"
-                >
-                <i class="fab fa-instagram" aria-hidden="true"></i>
-                </a>
-            </div>
-            </div>
+                   
+                    echo '<div class="relative flex w-96 flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-md">';
+                    echo '    <div class="relative mx-4 mt-4 h-100 overflow-hidden rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg" style="width:350px;height:300px;">';
 
+                    
+                    if (!empty($row['pfp'])) {
+                        echo '        <img style="width:350px;height:300px;" src="' . htmlspecialchars($row['pfp']) . '" alt="profile-picture" />';
+                    } else {
+                        echo '        <img style="width:350px;height:300px;" src="../assets/img/pfp/law.png" alt="profile-picture" />';
+                    }
 
-        
-        
+                    echo '    </div>';
+                    echo '    <div class="p-6 text-center">';
+                    echo '    <h4 class="mb-2 block font-sans text-2xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased" onclick="window.location.href=\'calander.php?lw_id=' . $lw_id . '\'">';
+                    echo            htmlspecialchars($row['FirstName']) . ' ' . htmlspecialchars($row['LastName']);
+                    echo '        </h4>';
+                    echo '        <p class="block bg-gradient-to-tr from-pink-600 to-pink-400 bg-clip-text font-sans text-base font-medium leading-relaxed text-transparent antialiased">';
+                    echo              htmlspecialchars($spc); // Display specialty
+                    echo '        </p>';
+                    echo '    </div>';
+                    echo '    <div class="flex justify-center gap-7 p-6 pt-2">';
+                    echo '        <a href="#facebook" class="block bg-gradient-to-tr from-blue-600 to-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased">';
+                    echo '            <i class="fab fa-facebook" aria-hidden="true"></i>';
+                    echo '        </a>';
+                    echo '        <a href="#twitter" class="block bg-gradient-to-tr from-light-blue-600 to-light-blue-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased">';
+                    echo '            <i class="fab fa-twitter" aria-hidden="true"></i>';
+                    echo '        </a>';
+                    echo '        <a href="#instagram" class="block bg-gradient-to-tr from-purple-600 to-purple-400 bg-clip-text font-sans text-xl font-normal leading-relaxed text-transparent antialiased">';
+                    echo '            <i class="fab fa-instagram" aria-hidden="true"></i>';
+                    echo '        </a>';
+                    echo '    </div>';
+                    echo '</div>';
+                }
+            }
+        } else {
+            echo '<p>No users found.</p>';
+        }
+
+        $con->close();
+    ?>
+
     </div>
 </section>
 </body>
