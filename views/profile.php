@@ -3,35 +3,64 @@
 <?php 
 
 
+session_start();
+
+
+if(!isset($_SESSION["email"])){
+    header("Location: login.php");
+    exit;
+}
+
+require("../db_config.php");
 
 if (isset($_POST['submit'])) {
-    $targetDir = "uploads/"; 
+    
+    $targetDir = "../assets/img/pfp"; 
     if (!is_dir($targetDir)) {
         mkdir($targetDir, 0777, true); 
     }
 
+    
     $fileName = basename($_FILES['image']['name']);
-    $targetFilePath = $targetDir . $fileName;
+    $targetFilePath = $targetDir . "/" . $fileName;  // Correct file path
     $imageFileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
 
     
     $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
     if (in_array($imageFileType, $allowedTypes)) {
         
+        
         if (move_uploaded_file($_FILES['image']['tmp_name'], $targetFilePath)) {
-            
-            $stmt = $conn->prepare("INSERT INTO images (file_path) VALUES (?)");
-            $stmt->bind_param("s", $targetFilePath);
-            if ($stmt->execute()) {
-                
-                $_SESSION['uploaded_image'] = $targetFilePath;
 
-                echo "Image uploaded and stored successfully!";
-                echo "<br> <a href='" . $targetFilePath . "'>View Image</a>";
+            $userId = $_SESSION['user_id'];  
+
+            
+            $updateQ = "UPDATE users SET pfp = ? WHERE user_id = ?";
+            
+            if ($stmt = mysqli_prepare($con, $updateQ)) {
+                
+                mysqli_stmt_bind_param($stmt, "si", $targetFilePath, $userId);
+
+                
+                if (mysqli_stmt_execute($stmt)) {
+                    
+                    $_SESSION['pfp']   = $targetFilePath;
+                    $_SESSION['phone'] = $_POST['phone_number'];
+                    $_SESSION['city']  = $_POST['city'];
+                    
+                    echo "Profile picture uploaded and updated successfully!";
+                    echo "<br><a href='" . $targetFilePath . "'>View Image</a>";
+                    header("Location: profile.php");
+                } else {
+                    echo "Failed to update profile picture in the database.";
+                }
+
+                
+                mysqli_stmt_close($stmt);
             } else {
-                echo "Failed to save file path in database.";
+                echo "Failed to prepare the SQL statement.";
             }
-            $stmt->close();
+
         } else {
             echo "Failed to upload the file.";
         }
@@ -39,6 +68,7 @@ if (isset($_POST['submit'])) {
         echo "Only JPG, JPEG, PNG, and GIF files are allowed.";
     }
 }
+
 
 
 
@@ -58,6 +88,12 @@ if (isset($_POST['submit'])) {
     <title>Profile</title>
 </head>
 <body>
+
+
+
+
+
+
 <header>
         <div class="py-4 px-2 lg:mx-4 xl:mx-12 ">
             <div class="">
@@ -109,29 +145,31 @@ if (isset($_POST['submit'])) {
 <section class="w-full overflow-hidden dark:bg-gray-900">
     <div class="flex flex-col">
         <!-- Cover Image -->
-        <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w0NzEyNjZ8MHwxfHNlYXJjaHw5fHxjb3ZlcnxlbnwwfDB8fHwxNzEwNzQxNzY0fDA&ixlib=rb-4.0.3&q=80&w=1080" alt="User Cover"
+        <img src="../assets/img/banner.jpg" alt="User Cover"
                 class="w-full xl:h-[20rem] lg:h-[18rem] md:h-[16rem] sm:h-[14rem] xs:h-[11rem]" />
 
         <!-- Profile Image -->
         <div class="sm:w-[80%] xs:w-[90%] mx-auto flex">
-            <img src="<?php echo $_SESSION['pfp_path'] ?>" alt="User Profile"
+            <img src="<?php if(isset($_SESSION['pfp'])){echo $_SESSION['pfp'];}else{echo "../assets/img/pfp/law.png";} ?>" alt="User Profile"
                     class="rounded-md lg:w-[12rem] lg:h-[12rem] md:w-[10rem] md:h-[10rem] sm:w-[8rem] sm:h-[8rem] xs:w-[7rem] xs:h-[7rem] outline outline-2 outline-offset-2 outline-blue-500 relative lg:bottom-[5rem] sm:bottom-[4rem] xs:bottom-[3rem]" />
 
             <!-- FullName -->
             <h1
                 class="w-full text-left my-4 sm:mx-4 xs:pl-4 text-gray-800 dark:text-white lg:text-4xl md:text-3xl sm:text-3xl xs:text-xl font-serif">
-                Oussama Benoujja</h1>
+                <b><?php echo $_SESSION['last_name']." ".$_SESSION['first_name']; ?></b></h1>
+
+            <button id="openModalBtn" class="bg-blue-500 text-white p-2 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+            </button>
 
         </div>
 
         <div
             class="xl:w-[80%] lg:w-[90%] md:w-[90%] sm:w-[92%] xs:w-[90%] mx-auto flex flex-col gap-4 items-center relative lg:-top-8 md:-top-6 sm:-top-4 xs:-top-4">
-            <!-- Description -->
-            <p class="w-fit text-gray-700 dark:text-gray-400 text-md">Lorem, ipsum dolor sit amet
-                consectetur adipisicing elit. Quisquam debitis labore consectetur voluptatibus mollitia dolorem
-                veniam omnis ut quibusdam minima sapiente repellendus asperiores explicabo, eligendi odit, dolore
-                similique fugiat dolor, doloremque eveniet. Odit, consequatur. Ratione voluptate exercitationem hic
-                eligendi vitae animi nam in, est earum culpa illum aliquam.</p>
+
 
 
             <!-- Detail -->
@@ -141,19 +179,15 @@ if (isset($_POST['submit'])) {
                         <dl class="text-gray-900 divide-y divide-gray-200 dark:text-white dark:divide-gray-700">
                             <div class="flex flex-col pb-3">
                                 <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">First Name</dt>
-                                <dd class="text-lg font-semibold">Oussama</dd>
+                                <dd class="text-lg font-semibold"><?php echo $_SESSION['first_name']; ?></dd>
                             </div>
                             <div class="flex flex-col py-3">
                                 <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Last Name</dt>
-                                <dd class="text-lg font-semibold">Benoujja</dd>
+                                <dd class="text-lg font-semibold"><?php echo $_SESSION['last_name']; ?></dd>
                             </div>
                             <div class="flex flex-col py-3">
                                 <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Date Of Birth</dt>
-                                <dd class="text-lg font-semibold">21/02/1997</dd>
-                            </div>
-                            <div class="flex flex-col py-3">
-                                <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Gender</dt>
-                                <dd class="text-lg font-semibold">Male</dd>
+                                <dd class="text-lg font-semibold"><?php echo $_SESSION['bday']; ?></dd>
                             </div>
                         </dl>
                     </div>
@@ -161,22 +195,33 @@ if (isset($_POST['submit'])) {
                         <dl class="text-gray-900 divide-y divide-gray-200 dark:text-white dark:divide-gray-700">
                             <div class="flex flex-col pb-3">
                                 <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Location</dt>
-                                <dd class="text-lg font-semibold">Morocco, Berkane</dd>
+                                <dd class="text-lg font-semibold">Morocco, <?php if(isset($_SESSION['city'])){echo $_SESSION['city'];} ?></dd>
                             </div>
 
                             <div class="flex flex-col pt-3">
                                 <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Phone Number</dt>
-                                <dd class="text-lg font-semibold">+212631721447</dd>
+                                <dd class="text-lg font-semibold"><?php if(isset($_SESSION['phone'])){echo $_SESSION['phone'];} ?></dd>
                             </div>
                             <div class="flex flex-col pt-3">
                                 <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Email</dt>
-                                <dd class="text-lg font-semibold">osama2code79@gmail.com</dd>
+                                <dd class="text-lg font-semibold"><?php echo $_SESSION['email']; ?></dd>
                             </div>
 
-                            <div class="flex flex-col pt-3">
-                                <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Website</dt>
-                                <dd class="text-lg font-semibold hover:text-blue-500"><a href="https://techakim.com">https://www.teclick.com</a></dd>
-                            </div>
+                            <?php
+                                if (isset($_SESSION['role']) && $_SESSION['role'] == 'lawyer') {
+                                    $sp = $_SESSION['speciality'];
+                                    $pr = $_SESSION['res_price'];  
+                                    echo '
+                                    <div class="flex flex-col pt-3">
+                                        <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Speciality</dt>
+                                        <dd class="text-lg font-semibold">' . htmlspecialchars($sp) . '</dd>
+                                    </div>
+                                    <div class="flex flex-col pt-3">
+                                        <dt class="mb-1 text-gray-500 md:text-lg dark:text-gray-400">Price Per Hour</dt>
+                                        <dd class="text-lg font-semibold">' . htmlspecialchars($pr) . '</dd>
+                                    </div>';
+                                }
+                            ?>
                         </dl>
                     </div>
                 </div>
@@ -188,8 +233,19 @@ if (isset($_POST['submit'])) {
                         My Location</h1>
 
                     <!-- Location -->
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d25032.818371689285!2d-9.248283950000001!3d32.22547215!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2s!5e1!3m2!1sen!2sma!4v1734514509929!5m2!1sen!2sma" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    <iframe
+                width="100%"
+                height="100%"
+                frameborder="0"
+                style="border:0"
+                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyCkxgifZq4lzNa9eJdMsc39ckqw68A3-rM&q=<?= $_SESSION['city'] ?>"
+                allowfullscreen>
+            </iframe>
                 </div>
+
+
+
+
             </div>
 
             <!-- Social Links -->
@@ -246,6 +302,31 @@ if (isset($_POST['submit'])) {
         </div>
     </div>
 </section>
+
+<!-- Modal -->
+<div id="updateProfileModal" class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="modal-content bg-white p-6 rounded-lg w-1/3">
+        <button class="close-btn absolute top-0 right-0 p-2 text-gray-500 hover:text-black" aria-label="Close">&times;</button>
+        <h2 class="text-xl font-semibold mb-4">Update Profile</h2>
+        
+        <form action="profile.php" method="POST" enctype="multipart/form-data">
+            <div class="mb-4">
+                <label for="image" class="block text-gray-700">Profile Picture:</label>
+                <input type="file" name="image" id="image" accept="image/*" class="w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="mb-4">
+                <label for="city" class="block text-gray-700">City:</label>
+                <input type="text" name="city" id="city" value="<?php if(isset($_SESSION['city'])){echo $_SESSION['city'];} ?>" required class="w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="mb-4">
+                <label for="phone_number" class="block text-gray-700">Phone Number:</label>
+                <input type="text" name="phone_number" id="phone_number" value="<?php if(isset($_SESSION['phone'])){echo $_SESSION['phone'];} ?>" required class="w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <button type="submit" name="submit" class="bg-blue-500 text-white p-2 rounded-md w-full">Update</button>
+        </form>
+    </div>
+</div>
+
 
 
 </body>
@@ -335,4 +416,28 @@ document.addEventListener('DOMContentLoaded', function () {
   
   });
   </script>
+
+<script>
+    const openModalBtn = document.getElementById("openModalBtn");
+    const modal = document.getElementById("updateProfileModal");
+    const closeModalBtn = document.querySelector(".close-btn");
+
+    // Open the modal
+    openModalBtn.onclick = function() {
+        modal.classList.remove("hidden");
+    }
+
+    // Close the modal when clicking the close button
+    closeModalBtn.onclick = function() {
+        modal.classList.add("hidden");
+    }
+
+    // Close the modal when clicking outside the modal content
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            modal.classList.add("hidden");
+        }
+    }
+</script>
+
 </html>
